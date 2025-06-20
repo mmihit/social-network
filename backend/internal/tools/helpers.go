@@ -52,10 +52,12 @@ func JSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 
 func ErrorJSONResponse(w http.ResponseWriter, statusCode int, message string) {
 	w.WriteHeader(statusCode)
+
 	var errResponse = ErrorApi{
 		ErrorMessage: message,
 		ErrorCode:    statusCode,
 	}
+	
 	err := json.NewEncoder(w).Encode(errResponse)
 	if err != nil {
 		// fallback error if encoding fails
