@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -46,9 +47,12 @@ func (db *DB) CreateGroup(title, description string, creatorID int) (int, error)
 }
 
 // AddGroupMember adds a user to a group with a specific status
-func (db *DB) AddGroupMember(groupID, userID int, status string) error {
-	_, err := db.Db.Exec("INSERT INTO group_members (group_id, user_id, status) VALUES (?, ?, ?)", groupID, userID, status)
-	return err
+func (db *DB) AddGroupMember(groupID, userID int, status string) (int64, error) {
+	res, err := db.Db.Exec("INSERT INTO group_members (group_id, user_id, status) VALUES (?, ?, ?)", groupID, userID, status)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
 }
 
 // GetGroups retrieves a list of groups with member count and user status
@@ -100,9 +104,10 @@ func (db *DB) RemoveGroupMember(groupID, userID int) error {
 	return err
 }
 
-// ApproveJoinRequest updates the group member status to 'approved'
+// ApproveJoinRequest updates the group member status to 'member'
 func (db *DB) ApproveJoinRequest(memberID int) error {
-	_, err := db.Db.Exec("UPDATE group_members SET status = 'approved' WHERE id = ?", memberID)
+	_, err := db.Db.Exec("UPDATE group_members SET status = 'member' WHERE id = ? ", memberID)
+	fmt.Println(err)
 	return err
 }
 
@@ -113,10 +118,11 @@ func (db *DB) GetGroupCreator(groupID int) (int, error) {
 	return creatorID, err
 }
 
+// GetGroupMembers retrieves all members (also creator) of a group
 func (db *DB) GetGroupMembers(groupId int) ([]int, error) {
 	var members []int
 
-	query := `SELECT user_id FROM group_members WHERE group_id = ? AND (status = 'approved' OR status = 'creator')`
+	query := `SELECT user_id FROM group_members WHERE group_id = ? AND (status = 'member' OR status = 'creator')`
 
 	rows, err := db.Db.Query(query, groupId)
 	if err != nil {
@@ -164,4 +170,44 @@ func (db *DB) GetUsersForGroupInvitation(groupID string, search string, offset i
 	}
 
 	return users, nil
+}
+
+// GetAllGroupsOfCreator retrives all groups when the creatorId is the creator
+func (db *DB) GetAllGroupsOfCreator(creatorId int) ([]int, error) {
+	var groups []int
+	query := "SELECT id FROM groups WHERE creator_id = ?"
+
+	rows, err := db.Db.Query(query, creatorId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return groups, nil
+		}
+		return groups, err
+	}
+	for rows.Next() {
+		var group int64
+		err = rows.Scan(&group)
+		if err != nil {
+			return groups, err
+		}
+		groups = append(groups, int(group))
+	}
+	return groups, nil
+}
+
+func (db *DB) IsTitleGroupAlreadyExist(title string) (bool, error) {
+	var exists bool
+
+	query := "SELECT 1 FROM groups WHERE title = ? LIMIT 1"
+
+	err := db.Db.QueryRow(query, title).Scan(&exists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			exists = false
+		} else {
+			fmt.Println(err)
+			return false, err
+		}
+	}
+	return exists, nil
 }

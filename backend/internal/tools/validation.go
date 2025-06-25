@@ -107,7 +107,7 @@ func CheckIsValidNickName(nickName string) (int, error) {
 
 // Validate first and last name format
 func IsValidName(name string) bool {
-	nameRegex := regexp.MustCompile(`^[a-zA-Z]{1,10}$`)
+	nameRegex := regexp.MustCompile(`^[a-zA-Z]{1,20}$`)
 	fmt.Println(name, nameRegex.MatchString(name))
 	return nameRegex.MatchString(name)
 }
@@ -159,4 +159,21 @@ func CheckLoginInfto(login string, password string) (*models.User, int, error) {
 	}
 
 	return user, http.StatusOK, nil
+}
+
+func IsValidGroup(name, description string) error {
+	if (strings.TrimSpace(name)) == "" || strings.TrimSpace(description) == "" {
+		return errors.New("all fields are required")
+	}
+
+	if len(description) > 300 || len(name) > 40 {
+		return errors.New("title or description is too long")
+	}
+
+	isExists, _ := models.Db.IsTitleGroupAlreadyExist(name)
+	if isExists {
+		return errors.New("this title already used")
+	}
+
+	return nil
 }
