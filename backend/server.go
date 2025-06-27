@@ -29,6 +29,8 @@ func main() {
 	http.HandleFunc("/api/groups/{groupID}/joinInvitation", handlers.HandleCORS(handlers.TokenMiddleware(handlers.JoinInvitation)))
 	http.HandleFunc("/api/groups/{groupID}/getMembers", handlers.HandleCORS(handlers.TokenMiddleware(handlers.GetAllMembersOfGroup)))
 	http.HandleFunc("/api/groups/{groupID}/addMember", handlers.HandleCORS(handlers.TokenMiddleware(handlers.AddMember)))
+	http.HandleFunc("/api/groups/search", handlers.HandleCORS(handlers.TokenMiddleware(handlers.SearchGroups)))
+	// http.HandleFunc("/api/groups/myGroups", handlers.HandleCORS(handlers.TokenMiddleware(handlers.GetMyGroups)))
 
 	http.HandleFunc("/api/groups", func(w http.ResponseWriter, r *http.Request) { fmt.Println("this is groups path") })
 

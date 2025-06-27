@@ -23,15 +23,11 @@ func CenerateJWTToken(userId int, userName string) (string, error) {
 }
 
 func CheckIsTokenValid(tokenString string) (int, error) {
+	fmt.Println("token", tokenString)
 	if tokenString == "" {
-		return 0, errors.New("missing authorization header")
+		return 0, errors.New("please login")
 	}
-	// fmt.Println(tokenString)
-	if len(tokenString) >= len("Bearer ") {
-		tokenString = tokenString[len("Bearer "):]
-	} else {
-		return 0, errors.New("unauthorized")
-	}
+
 	// fmt.Println(tokenString)
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {

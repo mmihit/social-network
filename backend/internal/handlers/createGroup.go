@@ -49,7 +49,7 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 
 	var groupResponse = models.Group{
 		ID:          gorupId,
-		CreatorId:   userId,
+		Creator:     models.Creator{Id: userId},
 		Title:       bodyRequest.Name,
 		Description: bodyRequest.Description,
 		CreatedAt:   time.Now().Format("Jan 2, 2006 at 3:04"),

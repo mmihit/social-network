@@ -6,13 +6,19 @@ import (
 	"time"
 )
 
+type Creator struct {
+	Id       int    `json:"id"`
+	Nickname string `json:"nickname"`
+}
+
 type Group struct {
-	ID          int    `json:"id"`
-	CreatorId   int    `json:"creator_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	CreatedAt   string `json:"created_at"`
-	Status      string `json:"status"`
+	ID          int     `json:"id"`
+	Creator     Creator `json:"creator"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	CreatedAt   string  `json:"created_at"`
+	Status      string  `json:"status"`
+	Size        int     `json:"size"`
 }
 
 func (db *DB) GetGroup(groupID int) (Group, error) {
@@ -20,7 +26,7 @@ func (db *DB) GetGroup(groupID int) (Group, error) {
 	var timeCreated time.Time
 
 	err := db.Db.QueryRow("SELECT id, title, description, creator_id, created_at FROM groups WHERE id = ?", groupID).
-		Scan(&g.ID, &g.Title, &g.Description, &g.CreatorId, &timeCreated)
+		Scan(&g.ID, &g.Title, &g.Description, &g.Creator.Id, &timeCreated)
 	if err != nil {
 		return Group{}, err
 	}
@@ -210,4 +216,55 @@ func (db *DB) IsTitleGroupAlreadyExist(title string) (bool, error) {
 		}
 	}
 	return exists, nil
+}
+
+func (db *DB) SearchForGroup(offset, userId int, searchInput string) ([]Group, bool, error) {
+	var groups []Group
+	hasMore := false
+	pageSize := 1
+
+	rows, err := db.Db.Query(`
+		SELECT g.id, g.title, g.description, g.creator_id, u.nickname, g.created_at,
+		       IFNULL(gm.status, '') AS status,
+		       (
+		         SELECT COUNT(*) FROM group_members gm2
+		         WHERE gm2.group_id = g.id AND (gm2.status = 'member' OR gm2.status = 'creator')
+		       ) AS size
+		FROM groups g
+		LEFT JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = ?
+		LEFT JOIN users u ON g.creator_id = u.id
+		WHERE g.title LIKE ?
+		LIMIT ? OFFSET ?`, userId, "%"+searchInput+"%", pageSize+1, (offset-1)*pageSize)
+	if err != nil {
+		return groups, hasMore, err
+	}
+	defer rows.Close()
+
+	var count = 0
+	for rows.Next() {
+		fmt.Println("count", count)
+		if count == pageSize {
+			hasMore = true
+			break
+		}
+
+		var group Group
+		var status any
+
+		err = rows.Scan(&group.ID, &group.Title, &group.Description, &group.Creator.Id, &group.Creator.Nickname, &group.CreatedAt, &status, &group.Size)
+		if err != nil {
+			return groups, hasMore, err
+		}
+
+		if status == nil {
+			group.Status = ""
+		} else {
+			group.Status = status.(string)
+		}
+
+		groups = append(groups, group)
+		count++
+	}
+
+	return groups, hasMore, nil
 }
