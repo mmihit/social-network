@@ -120,6 +120,7 @@ func (db *DB) ApproveJoinRequest(memberID int) error {
 // GetGroupCreator retrieves the creator ID of a group
 func (db *DB) GetGroupCreator(groupID int) (int, error) {
 	var creatorID int
+	fmt.Println("groupID", groupID)
 	err := db.Db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
 	return creatorID, err
 }
@@ -221,7 +222,7 @@ func (db *DB) IsTitleGroupAlreadyExist(title string) (bool, error) {
 func (db *DB) SearchForGroup(offset, userId int, searchInput string) ([]Group, bool, error) {
 	var groups []Group
 	hasMore := false
-	pageSize := 1
+	pageSize := 10
 
 	rows, err := db.Db.Query(`
 		SELECT g.id, g.title, g.description, g.creator_id, u.nickname, g.created_at,

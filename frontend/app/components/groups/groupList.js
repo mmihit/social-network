@@ -1,99 +1,87 @@
 "use client";
 
 import { fetchData } from "@/app/helpers/fetch";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { GroupCard } from "./groupCard";
-import Link from "next/link";
+import styles from "@/app/styles/components/groupList.module.css";
 
 export function GroupList({ input }) {
   const [searchMessage, setSearchMessage] = useState("");
   const [groups, setGroups] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(1);
-  const prevInput = useRef(input);
-  const prevOffset = useRef(offset);
 
   useEffect(() => {
+    setGroups([]);
+    setOffset(1);
+    setSearchMessage("");
+  }, [input]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
     const getData = async () => {
-      //   console.log(prevInput.current, input);
-      var flag = false;
-
-      //   let Offset = offset;
-      if (prevInput.current !== input) {
-        console.log("input changed", input);
-        console.log("offset not changed", offset);
-        setOffset(1);
-        flag = true;
-      }
-
       const data = await fetchData(
-        `http://localhost:8080/api/groups/search?q=${input}&offset=${offset}`
+        `http://localhost:8080/api/groups/search?q=${encodeURIComponent(
+          input
+        )}&offset=${offset}`,
+        "GET"
       );
 
+      if (isCancelled) return;
+
       if (data.groups) {
-        if (flag) {
-          console.log("tt");
+        if (offset === 1) {
           setGroups(data.groups);
-        } else if (prevOffset !== offset) {
-          console.log("offset changed", offset);
-          console.log("input not changed", input);
-          setGroups([...groups, ...data.groups]);
         } else {
-          console.log(
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa***********************"
-          );
+          setGroups((prev) => [...prev, ...data.groups]);
         }
         setHasMore(data.hasMore);
       } else if (data.message) {
         setSearchMessage(data.message);
-        setHasMore(false);
         setGroups([]);
+        setHasMore(false);
       }
     };
 
     getData();
-    setTimeout(() => {
-      prevInput.current = input;
-      prevOffset.current = offset;
-    }, 500);
+
+    return () => {
+      isCancelled = true;
+    };
   }, [input, offset]);
 
-  let date;
-
   return (
-    <>
+    <div className={styles.groupListContainer}>
       {groups.length > 0 ? (
-        groups.map(
-          (group, key) => (
-            (date = new Date(group.created_at)),
-            (
-              <Link key={key} href={`/groups/${group.id}`}>
-                <GroupCard
-                  title={group.title}
-                  description={group.description}
-                  created_at={date.toDateString()}
-                  creatorId={group.creator.id}
-                  creatorNickname={group.creator.nickname}
-                  status={group.status}
-                />
-              </Link>
-            )
-          )
-        )
+        groups.map((group, idx) => {
+          const date = new Date(group.created_at);
+          return (
+            <GroupCard
+              key={group.id ?? idx}
+              id={group.id}
+              title={group.title}
+              description={group.description}
+              created_at={date.toDateString()}
+              creatorId={group.creator.id}
+              creatorNickname={group.creator.nickname}
+              countMembers={group.size}
+              status={group.status}
+            />
+          );
+        })
       ) : (
-        <p>{searchMessage}</p>
+        <p className={styles.noResult}>{searchMessage || "No groups found."}</p>
       )}
-      {hasMore ? (
-        <a
-          onClick={() => {
-            setOffset(offset + 1);
-          }}
+
+      {hasMore && (
+        <button
+          className={styles.loadMore}
+          onClick={() => setOffset((prev) => prev + 1)}
         >
-          more...
-        </a>
-      ) : (
-        <></>
+          Load more...
+        </button>
       )}
-    </>
+    </div>
   );
 }

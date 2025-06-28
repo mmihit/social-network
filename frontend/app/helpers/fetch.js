@@ -1,15 +1,12 @@
-export const fetchData = async (url) => {
-  const response = await fetch(
-    url,
-    {
-      method: "GET",
-      credentials: "include",
-    }
-  );
+export const fetchData = async (url, method, body) => {
+  const response = await fetch(url, {
+    method: method,
+    credentials: "include",
+    body: body,
+  });
   const data = await response.json();
-  if (!response.ok) {
-    alert(data.message);
+  if (!response.ok && data.error_message) {
+    alert(`Error: ${data.error_message}`);
   }
-//   console.log(data)
   return data;
 };

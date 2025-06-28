@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import styles from "@/app/styles/auth.module.css";
+import styles from "@/app/styles/pages/auth.module.css";
 import { useRouter } from "next/navigation";
 import { LinkButton } from "../components/global/link_button";
 import { ErrorFormMessage } from "../components/global/error_form";

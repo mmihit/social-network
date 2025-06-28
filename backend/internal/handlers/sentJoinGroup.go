@@ -13,6 +13,10 @@ type JoinGroupRequest struct {
 	CreatorId int `json:"creatorId"`
 }
 
+type sentJointGroupResponse struct {
+	Message string `json:"messasge"`
+}
+
 func SentJoinGroup(w http.ResponseWriter, r *http.Request) {
 	userId := r.Context().Value("userID").(int)
 
@@ -29,6 +33,7 @@ func SentJoinGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("body request", bodyRequest)
 	creatorId, err := models.Db.GetGroupCreator(bodyRequest.GroupId)
 	if err != nil {
 		fmt.Println(err)
@@ -78,6 +83,10 @@ func SentJoinGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tools.JSONResponse(w, http.StatusOK, "join request sent succeffully")
+	var response = sentJointGroupResponse{
+		Message: "join request sent succeffully",
+	}
+
+	tools.JSONResponse(w, http.StatusOK, response)
 
 }
