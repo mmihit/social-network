@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	"net/http"
-	database "social-network/internal/db/sqlite"
+	"social-network/internal/db/sqlite"
 	"social-network/internal/handlers"
 	"social-network/internal/models"
 )
 
 func init() {
-	db := database.CreateAllTables()
+	db := sqlite.CreateAllTables()
 	models.Db = models.InitializeDb(db)
 }
 
@@ -25,7 +25,7 @@ func main() {
 	http.HandleFunc("/api/follow/{userID}", handlers.HandleCORS(handlers.TokenMiddleware(handlers.FollowUser))) // 1-need send notification func with ws | 2- need handling this cases: *when user follow himself  *when user follow a user already follower (follow the same follower 2 times)
 	http.HandleFunc("/api/followResponse", handlers.HandleCORS(handlers.TokenMiddleware(handlers.FollowResponse)))
 
-	http.HandleFunc("/api/posts", handlers.HandleCORS(handlers.TokenMiddleware(func(w http.ResponseWriter, r *http.Request) { fmt.Println("this is api/posts path") })))
+	http.HandleFunc("/api/posts", handlers.HandleCORS(handlers.TokenMiddleware(handlers.CreatePostHandler))) // POST for creating, GET for fetching
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { fmt.Println("this is home path") })
 
 	http.ListenAndServe(":8080", nil)
