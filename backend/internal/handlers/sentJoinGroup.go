@@ -14,7 +14,7 @@ type JoinGroupRequest struct {
 }
 
 type sentJointGroupResponse struct {
-	Message string `json:"messasge"`
+	Message string `json:"message"`
 }
 
 func SentJoinGroup(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +29,7 @@ func SentJoinGroup(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&bodyRequest)
 	if err != nil {
+		fmt.Println(err)
 		tools.ErrorJSONResponse(w, http.StatusBadRequest, "error sending request, try again")
 		return
 	}

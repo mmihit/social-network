@@ -1,9 +1,9 @@
 "use client";
 
-import { fetchData } from "@/app/helpers/fetch";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "@/app/styles/components/groupCard.module.css";
+import { useAuth } from "../global/authProvider";
 
 export function GroupCard({
   id,
@@ -17,26 +17,25 @@ export function GroupCard({
 }) {
   const [clicked, setClicked] = useState(false);
   const [joinSent, setJoinSent] = useState(false);
-
-  async function joinHandle() {
-    const data = await fetchData(
-      `http://localhost:8080/api/groups/${id}/sentJoinRequest`,
-      "POST",
-      JSON.stringify({
-        creatorId: creatorId,
-        groupId: id,
-      })
-    );
-    if (data.message) {
-      setJoinSent(true);
-      alert(data.message);
-    } else if (data.error_message) {
-      alert(`Error: ${data.error_message}`);
-      setClicked(false);
-    }
-  }
+  const { fetchWithAuth } = useAuth();
 
   useEffect(() => {
+    async function joinHandle() {
+      const data = await fetchWithAuth(
+        `http://localhost:8080/api/groups/${id}/sentJoinRequest`,
+        "POST",
+        JSON.stringify({
+          creatorId: creatorId,
+          groupId: id,
+        })
+      );
+      if (data?.message) {
+        setJoinSent(true);
+        alert(data.message);
+      } else if (data?.error_message) {
+        setClicked(false);
+      }
+    }
     if (clicked) {
       joinHandle();
     }
@@ -63,7 +62,7 @@ export function GroupCard({
       <div className={styles.actions}>
         {status ? (
           status === "request" ? (
-            <p className="info">Request sent</p>
+            <p className="info">Invitation sent</p>
           ) : (
             <Link href={`groups/${id}`}>
               <button>Open</button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import styles from "@/app/styles/auth.module.css";
+import styles from "@/app/styles/pages/auth.module.css";
 
 export function LinkButton(props) {
   const router = useRouter();

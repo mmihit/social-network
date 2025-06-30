@@ -10,17 +10,17 @@ import (
 )
 
 type User struct {
-	ID          int
-	Nickname    string
-	Firstname   string
-	Lastname    string
-	Email       string
-	Password    string
-	DateOfBirth string
-	Gender      string
-	AboutMe     string
-	Avatar      *string
-	IsPublic    bool
+	ID          int	`json:"id"`
+	Nickname    string `json:"nickname"`
+	Firstname   string `json:"firstName"`	
+	Lastname    string `json:"lastName"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	DateOfBirth string `json:"dateOfBirth"`
+	Gender      string `json:"gender"`
+	AboutMe     string `json:"aboutMe"`
+	Avatar      *string `json:"avatar"`
+	IsPublic    bool `json:"isPublic"`
 }
 
 // Insert a new user into the database

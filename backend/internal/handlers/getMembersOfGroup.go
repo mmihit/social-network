@@ -9,13 +9,7 @@ import (
 )
 
 type getMembersResponse struct {
-	Members []member `json:"members"`
-}
-
-type member struct {
-	Id       int    `json:"id"`
-	NickName string `json:"nickName"`
-	Status   string `json:"status"`
+	Members []models.Member `json:"members"`
 }
 
 func GetAllMembersOfGroup(w http.ResponseWriter, r *http.Request) {
@@ -33,46 +27,23 @@ func GetAllMembersOfGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	creatorId, err := models.Db.GetGroupCreator(groupId)
+	status, err := models.Db.GetUserGroupStatus(groupId, userId)
 	if err != nil {
 		fmt.Println(err)
 		tools.ErrorJSONResponse(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	if creatorId != userId {
-		tools.ErrorJSONResponse(w, http.StatusBadRequest, "you are not the creator of this group")
+	if status != "creator" && status != "member" {
+		tools.ErrorJSONResponse(w, http.StatusBadRequest, "you are not a member on this group")
 		return
 	}
 
-	membersId, err := models.Db.GetGroupMembers(groupId)
+	members, err := models.Db.GetGroupMembers(groupId)
 	if err != nil {
 		fmt.Println(err)
 		tools.ErrorJSONResponse(w, http.StatusInternalServerError, "internal server error")
 		return
-	}
-
-	var members []member
-
-	for _, memberId := range membersId {
-		user, err := models.Db.GetUserInfo(memberId)
-		if err != nil {
-			fmt.Println(err)
-			tools.ErrorJSONResponse(w, http.StatusInternalServerError, "internal server error")
-			return
-		}
-		var status = "member"
-		if memberId == creatorId {
-			status = "creator"
-		}
-
-		var member = member{
-			Id:       user.ID,
-			NickName: user.Nickname,
-			Status:   status,
-		}
-
-		members = append(members, member)
 	}
 
 	var response = getMembersResponse{

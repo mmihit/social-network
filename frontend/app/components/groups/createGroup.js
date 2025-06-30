@@ -1,18 +1,19 @@
 "use client";
 
-import { fetchData } from "@/app/helpers/fetch";
 import styles from "@/app/styles/components/createGroup.module.css";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "../global/authProvider";
 
 export function CreateGroup({ onClose }) {
   const [titleInput, setTitleInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
+  const { fetchWithAuth } = useAuth();
   const router = useRouter();
 
   async function submitHandle(e) {
     e.preventDefault();
-    const response = await fetchData(
+    const response = await fetchWithAuth(
       `http://localhost:8080/api/createGroup`,
       "POST",
       JSON.stringify({
@@ -22,13 +23,9 @@ export function CreateGroup({ onClose }) {
     );
 
     console.log("response", response);
-    if (!response.error_message) {
-      console.log("test this is nice");
+    if (!response?.error_message) {
       console.log("link", `/groups/${response.id}`);
-      alert("ahda");
       router.push(`/groups/${response.id}`);
-    } else {
-      console.log("not nice");
     }
   }
 

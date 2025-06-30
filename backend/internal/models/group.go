@@ -21,16 +21,30 @@ type Group struct {
 	Size        int     `json:"size"`
 }
 
+type Member struct {
+	Id       int    `json:"id"`
+	Nickname string `json:"nickname"`
+	Status   string `json:"status"`
+}
+
 func (db *DB) GetGroup(groupID int) (Group, error) {
 	var g Group
-	var timeCreated time.Time
 
-	err := db.Db.QueryRow("SELECT id, title, description, creator_id, created_at FROM groups WHERE id = ?", groupID).
-		Scan(&g.ID, &g.Title, &g.Description, &g.Creator.Id, &timeCreated)
+	err := db.Db.QueryRow(`SELECT g.id, g.title, g.description, g.creator_id, u.nickname, g.created_at,
+		       (
+		         SELECT COUNT(*) FROM group_members gm2
+		         WHERE gm2.group_id = g.id AND (gm2.status = 'member' OR gm2.status = 'creator')
+		       ) AS size
+		FROM groups g
+		LEFT JOIN users u ON g.creator_id = u.id
+		WHERE g.id = ?`, groupID).Scan(&g.ID, &g.Title, &g.Description, &g.Creator.Id, &g.Creator.Nickname, &g.CreatedAt, &g.Size)
 	if err != nil {
-		return Group{}, err
+		if err == sql.ErrNoRows {
+			return Group{}, nil
+		}
+
+		return Group{ID: 0}, err
 	}
-	g.CreatedAt = timeCreated.Format("Jan 2, 2006 at 3:04")
 
 	return g, nil
 }
@@ -126,10 +140,12 @@ func (db *DB) GetGroupCreator(groupID int) (int, error) {
 }
 
 // GetGroupMembers retrieves all members (also creator) of a group
-func (db *DB) GetGroupMembers(groupId int) ([]int, error) {
-	var members []int
+func (db *DB) GetGroupMembers(groupId int) ([]Member, error) {
+	var members []Member
 
-	query := `SELECT user_id FROM group_members WHERE group_id = ? AND (status = 'member' OR status = 'creator')`
+	query := `SELECT user_id, u.nickname, status FROM group_members
+	LEFT JOIN users AS u ON user_id=u.id
+	WHERE group_id = ? AND (status = 'member' OR status = 'creator')`
 
 	rows, err := db.Db.Query(query, groupId)
 	if err != nil {
@@ -138,45 +154,56 @@ func (db *DB) GetGroupMembers(groupId int) ([]int, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var userId int
-		if err := rows.Scan(&userId); err != nil {
+		var member Member
+		if err := rows.Scan(&member.Id, &member.Nickname, &member.Status); err != nil {
 			return nil, err
 		}
-		members = append(members, userId)
+		members = append(members, member)
 	}
 
 	return members, nil
 }
 
 // GetUsersForGroupInvitation retrieves users who are not already in the group
-func (db *DB) GetUsersForGroupInvitation(groupID string, search string, offset int) ([]User, error) {
-	query := `SELECT id, first_name, last_name FROM users WHERE id NOT IN (SELECT user_id FROM group_members WHERE group_id = ?)`
-	params := []interface{}{groupID}
+func (db *DB) GetUsersForGroupInvitation(groupID, offset int, searchInput string) ([]User, bool, error) {
+	var hasMore bool
+	var users []User
 
-	if search != "" {
-		query += " AND (first_name LIKE CONCAT('%', ?, '%') OR last_name LIKE CONCAT('%', ?, '%') OR nickname LIKE CONCAT('%', ?, '%'))"
-		params = append(params, search, search, search)
-	}
+	pageSize := 1
 
-	query += " LIMIT 6 OFFSET ?"
-	params = append(params, offset)
+	query := `
+	SELECT u.id, u.nickname
+	FROM users u
+	WHERE NOT EXISTS (
+		SELECT 1 FROM group_members gm 
+		WHERE gm.user_id = u.id AND gm.group_id = ?
+	)
+	AND u.nickname LIKE ?
+	LIMIT ? OFFSET ?
+	`
 
-	rows, err := db.Db.Query(query, params...)
+	rows, err := db.Db.Query(query, groupID, "%"+searchInput+"%", pageSize+1, (offset-1)*pageSize)
 	if err != nil {
-		return nil, err
+		return nil, hasMore, err
 	}
 	defer rows.Close()
 
-	var users []User
+	count := 0
 	for rows.Next() {
+		if count == pageSize {
+			hasMore = true
+			break
+		}
+
 		var u User
-		if err := rows.Scan(&u.ID, &u.Firstname, &u.Lastname); err != nil {
-			return nil, err
+		if err := rows.Scan(&u.ID, &u.Nickname); err != nil {
+			return nil, hasMore, err
 		}
 		users = append(users, u)
+		count++
 	}
 
-	return users, nil
+	return users, hasMore, nil
 }
 
 // GetAllGroupsOfCreator retrives all groups when the creatorId is the creator
@@ -235,6 +262,13 @@ func (db *DB) SearchForGroup(offset, userId int, searchInput string) ([]Group, b
 		LEFT JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = ?
 		LEFT JOIN users u ON g.creator_id = u.id
 		WHERE g.title LIKE ?
+		ORDER BY 
+		  CASE 
+		    WHEN gm.status = 'creator' THEN 1
+		    WHEN gm.status = 'member' THEN 2
+		    WHEN gm.status = 'request' THEN 3
+		    ELSE 4
+		  END
 		LIMIT ? OFFSET ?`, userId, "%"+searchInput+"%", pageSize+1, (offset-1)*pageSize)
 	if err != nil {
 		return groups, hasMore, err
@@ -243,7 +277,6 @@ func (db *DB) SearchForGroup(offset, userId int, searchInput string) ([]Group, b
 
 	var count = 0
 	for rows.Next() {
-		fmt.Println("count", count)
 		if count == pageSize {
 			hasMore = true
 			break

@@ -1,12 +1,34 @@
 "use client";
 
+import { fetchData } from "@/app/helpers/fetch";
 import styles from "@/app/styles/components/navbar.module.css";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAuth } from "./authProvider";
 
 export function NavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  console.log(styles)
+  const [logOut, setLogOut] = useState(false);
+  const {fetchWithAuth}=useAuth()
+  const router = useRouter();
+
+  useEffect(() => {
+    async function logOutHandler() {
+      const response = await fetchWithAuth(
+        `http://localhost:8080/api/logout`,
+        "POST"
+      );
+      console.log(response)
+
+      if (!response?.error_message) {
+        router.push("/login");
+        alert(response.message);
+      }
+    }
+
+    if (logOut) logOutHandler();
+  }, [logOut]);
 
   return (
     <nav className={styles.navbar}>
@@ -15,8 +37,12 @@ export function NavBar() {
       </div>
 
       <div className={styles.actions}>
-        <input type="text" placeholder="Search users..." className={styles.search} />
-        
+        <input
+          type="text"
+          placeholder="Search users..."
+          className={styles.search}
+        />
+
         <div className={styles.icons}>
           <span>💬</span>
           <span>🔔</span>
@@ -28,7 +54,7 @@ export function NavBar() {
             {menuOpen && (
               <div className={styles.dropdown}>
                 <Link href="/profile">Profile</Link>
-                <Link href="/logout">Logout</Link>
+                <button onClick={() => setLogOut(true)}>Logout</button>
               </div>
             )}
           </div>

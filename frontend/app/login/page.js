@@ -1,5 +1,5 @@
 "use client"; // important! because we will use interactivity
-import styles from "@/app/styles/auth.module.css";
+import styles from "@/app/styles/pages/auth.module.css";
 import { LinkButton } from "../components/global/link_button";
 import { useState } from "react";
 import { ErrorFormMessage } from "../components/global/error_form";
@@ -13,39 +13,39 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 
-    const handleSubmit = async (e) => {
-      setErrorMessage("");
+  const handleSubmit = async (e) => {
+    setErrorMessage("");
 
-      e.preventDefault();
+    e.preventDefault();
 
-      try {
-        const response = await fetch("http://localhost:8080/api/login", {
-          method: "POST",
-          body: JSON.stringify(formInputs),
-          credentials: "include",
-        });
+    try {
+      const response = await fetch("http://localhost:8080/api/login", {
+        method: "POST",
+        body: JSON.stringify(formInputs),
+        credentials: "include",
+      });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          if (response.status === 400) {
-            console.log(errorData);
-            setErrorMessage(errorData.error_message);
-          } else {
-            if (errorData.message) {
-              alert(errorData.error_message);
-            }
-            throw new Error("Login failed");
-          }
-          return;
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 400) {
+          console.log(errorData);
+          setErrorMessage(errorData.error_message);
         } else {
-          const result = await response.json();
-          router.push("/");
-          console.log(result);
+          if (errorData.message) {
+            alert(errorData.error_message);
+          }
+          throw new Error("Login failed");
         }
-      } catch (error) {
-        console.error("Error:", error);
+        return;
+      } else {
+        const result = await response.json();
+        router.push("/");
+        console.log(result);
       }
-    };  
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
 
   return (
     <main>

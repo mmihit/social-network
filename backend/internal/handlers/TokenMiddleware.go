@@ -16,7 +16,9 @@ func TokenMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		token, err := r.Cookie("JWT_token")
 		if err != nil {
 			tools.ErrorJSONResponse(w, http.StatusUnauthorized, "please login")
+			return
 		}
+
 
 		id, err := tools.CheckIsTokenValid(token.Value)
 		if err != nil {

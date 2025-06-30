@@ -13,8 +13,9 @@ func JoinInvitation(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPut, http.MethodDelete:
 		var response struct {
-			message string
+			message string `json:"message"`
 		}
+
 		var bodyRequest models.Notification
 		err := json.NewDecoder(r.Body).Decode(&bodyRequest)
 		if err != nil {

@@ -1,15 +1,18 @@
 "use client";
 
-import { fetchData } from "@/app/helpers/fetch";
 import { useEffect, useState } from "react";
 import { GroupCard } from "./groupCard";
 import styles from "@/app/styles/components/groupList.module.css";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../global/authProvider";
 
 export function GroupList({ input }) {
   const [searchMessage, setSearchMessage] = useState("");
   const [groups, setGroups] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(1);
+  const { fetchWithAuth } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     setGroups([]);
@@ -21,7 +24,7 @@ export function GroupList({ input }) {
     let isCancelled = false;
 
     const getData = async () => {
-      const data = await fetchData(
+      const data = await fetchWithAuth(
         `http://localhost:8080/api/groups/search?q=${encodeURIComponent(
           input
         )}&offset=${offset}`,
@@ -30,14 +33,14 @@ export function GroupList({ input }) {
 
       if (isCancelled) return;
 
-      if (data.groups) {
+      if (data?.groups) {
         if (offset === 1) {
           setGroups(data.groups);
         } else {
           setGroups((prev) => [...prev, ...data.groups]);
         }
         setHasMore(data.hasMore);
-      } else if (data.message) {
+      } else if (data?.message) {
         setSearchMessage(data.message);
         setGroups([]);
         setHasMore(false);
@@ -58,7 +61,7 @@ export function GroupList({ input }) {
           const date = new Date(group.created_at);
           return (
             <GroupCard
-              key={group.id ?? idx}
+              key={idx}
               id={group.id}
               title={group.title}
               description={group.description}
